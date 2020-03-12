@@ -149,8 +149,7 @@ def mine():
         block = blockchain.new_block(submitted_proof, previous_hash)
 
         # reward miner for guessing proof
-        blockchain.new_transaction(
-            sender="0", recipient=node_identifier, amount=1)
+        blockchain.new_transaction(sender="0", recipient=node_identifier, amount=1)
         response = {
             # TODO: Send a JSON response with the new block
             'message': 'Newly Forged Block',
@@ -199,8 +198,7 @@ def new_transaction():
         }), 400
 
     # create a new transaction
-    index = blockchain.new_transaction(
-        data['sender'], data['recipient'], data['amount'])
+    index = blockchain.new_transaction(data['sender'], data['recipient'], data['amount'])
 
     # set the response object with a message that the transaction will be added at the index
     response = {'message': f'Transaction will be added to Block {index}'}

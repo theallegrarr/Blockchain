@@ -9,31 +9,71 @@ function App() {
     name: '',
     amount: 0,
     username: '',
-    user_balance: 0
+    user_name: '',
+    user_balance: 0,
+    recipient: '',
+    transactions: []
   });
 
-  updateValues = async (e) => {
+  const updateValues = async (e) => {
     setState({
       ...state,
       [e.target.name]: e.target.value
     })
   }
 
+  const onSubmit = async (e) => {
+    e.preventDefault()
+    setState({
+      ...state,
+      user_name: state.username
+    })
+    getBalance(state.chain)
+  }
+
+  const sendFunds = (e) => {
+    e.preventDefault()
+    if(state.balance > state.amount){
+      axios.post('http://localhost:5000/transactions/new', { sender: state.user_name, recipient: state.recipient, amount: state.amount.toString() })
+        .then(res => {
+          window.alert(res.data.message)
+        }).catch(e => e)
+      } else {
+        window.alert("Not Enough Funds")
+      }
+  }
+
   useEffect(() => {
     axios.get('http://localhost:5000/chain')
       .then(res => {
-        setState({ ...state, chain: res.data })
+        setState({ ...state, chain: res.data.chain })
+        getBalance(res.data.chain);
       }).catch(e => e);
+    
   }, []);
 
-  getBalance = () => {
-    for(let i=0; i<state.chain.length; i++){
-      for(let j=0; j<state.chain[i].transactions.length; j++){
-        if(state.chain[i].transactions[j].recipient === state.username){
+  const getBalance = (chain) => {
+    let newbalance = 0;
+    state.transactions = []
+    for(let i=0; i<chain.length; i++){
+      for(let j=0; j<chain[i].transactions.length; j++){
+        console.log(chain[i].transactions[j], state.username)
+        if(chain[i].transactions[j].recipient === state.username){
+          state.transactions.push(chain[i].transactions[j])
+          newbalance = newbalance + parseInt(chain[i].transactions[j].amount)
           setState({
             ...state,
-            balance: state.balance + parseInt(state.chain[i].transactions[j].amount)
+            user_name: state.username,
+            balance: newbalance
           })
+        } else if(chain[i].transactions[j].sender === state.username){
+          newbalance = newbalance - parseInt(chain[i].transactions[j].amount)
+          state.transactions.push(chain[i].transactions[j])
+            setState({
+              ...state,
+              user_name: state.username,
+              balance: newbalance
+            })
         }
       }
     }
@@ -46,13 +86,14 @@ function App() {
         <p>
           Your React Tokens Wallet
         </p>
-        {state.username.length === 0 ? 
+        {state.user_name.length === 0 ? 
           <>
-            <p>Enter Your Name to Start</p>
+            <p>Enter Your ID to Start</p>
             <div>
-              <label>Your Wallet Name: </label>
-              <input name="username" value={state.username} />
+              <label>Enter Your ID: </label>
+              <input name="username" value={state.username} onChange={updateValues}/>
             </div>
+            <button onClick={onSubmit}>Submit</button>
           </>
         :
           <>
@@ -60,18 +101,45 @@ function App() {
             className="App-link"
             target="_blank"
           >
-            Balance: {state.balance}
+            Token Balance: {state.balance}
           </p>
           <div>
             <label>Receiver Name: </label>
-            <input name="name" value={state.name} />
+            <input name="recipient" value={state.recipient} onChange={updateValues}/>
           </div>
           <div>
             <label>Amount: </label>
-            <input name="amount" value={state.amount} />
+            <input name="amount" value={state.amount} onChange={updateValues}/>
           </div>
+            <button onClick={sendFunds}>Submit</button>
+          
+          <div>
+            <label>Change ID: </label>
+            <input name="username" value={state.username} onChange={updateValues}/>
+          </div>
+          <button onClick={onSubmit}>Save New ID</button>
           </>
         }
+        {
+          state.transactions.length > 0 &&
+          <table>
+            <tr>
+              <th>Amount</th>
+              <th>sender</th>
+              <th>recipient</th>
+            </tr>
+            {
+              state.transactions.map(txn => 
+                <tr>
+                  <th>{txn.amount}</th>
+                  <th>{txn.sender}</th>
+                  <th>{txn.recipient}</th>
+                </tr>
+                )
+            }
+          </table>
+        }
+          
         </header>
     </div>
   );
